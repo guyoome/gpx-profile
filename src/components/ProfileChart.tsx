@@ -20,6 +20,8 @@ export type ChartOptions = {
   /** Horizontal shift between two consecutive lines, in px */
   shift: number;
   showGrid: boolean;
+  /** Show the regular distance labels (every 10 km, 5 km… depending on length) */
+  showKmLabels: boolean;
   background: "white" | "transparent";
 };
 
@@ -82,7 +84,7 @@ type Props = {
 };
 
 export default function ProfileChart({ data, markers, options, svgRef }: Props) {
-  const { color, width: W, height: H, lines: N, shift, showGrid, background } = options;
+  const { color, width: W, height: H, lines: N, shift, showGrid, showKmLabels, background } = options;
   const x0 = MARGIN.left;
   const x1 = W - MARGIN.right;
   const yBottom = H - MARGIN.bottom;
@@ -201,7 +203,7 @@ export default function ProfileChart({ data, markers, options, svgRef }: Props) 
       ))}
 
       {/* Regular km labels, skipped when too close to a marker label */}
-      {kmTicks.map((d) => {
+      {showKmLabels && kmTicks.map((d) => {
         const x = xOf(d);
         if (markerXs.some((mx) => Math.abs(mx - x) < 24)) return null;
         return (

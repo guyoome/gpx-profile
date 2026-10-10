@@ -13,6 +13,7 @@ const DEFAULT_OPTIONS: ChartOptions = {
   lines: 32,
   shift: 0.8,
   showGrid: true,
+  showKmLabels: true,
   background: "white",
 };
 
@@ -191,6 +192,14 @@ export default function Home() {
               <label className={styles.check}>
                 <input type="checkbox" checked={options.showGrid} onChange={(e) => setOpt("showGrid", e.target.checked)} />
                 Grid
+              </label>
+              <label className={styles.check}>
+                <input
+                  type="checkbox"
+                  checked={options.showKmLabels}
+                  onChange={(e) => setOpt("showKmLabels", e.target.checked)}
+                />
+                Regular km labels
               </label>
               <label className={styles.check}>
                 <input
