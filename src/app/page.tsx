@@ -48,6 +48,7 @@ export default function Home() {
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadFile = useCallback(async (file: File) => {
     setError(null);
@@ -83,35 +84,44 @@ export default function Home() {
   return (
     <main className={styles.main}>
       <h1 className={styles.title}>GPX → Elevation profile</h1>
-      <p className={styles.subtitle}>Upload a GPX file, get a race-style elevation profile as SVG or PNG.</p>
+      {!data && (
+        <p className={styles.subtitle}>Upload a GPX file, get a race-style elevation profile as SVG or PNG.</p>
+      )}
 
-      <label
-        className={`${styles.drop} ${dragging ? styles.dropActive : ""}`}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          const f = e.dataTransfer.files[0];
+      {/* Single file input, used by both the drop zone and the "Load another GPX" button */}
+      <input
+        ref={fileInputRef}
+        id="gpx-input"
+        type="file"
+        accept=".gpx,application/gpx+xml"
+        className={styles.hiddenInput}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
           if (f) loadFile(f);
+          e.target.value = "";
         }}
-      >
-        <input
-          type="file"
-          accept=".gpx,application/gpx+xml"
-          className={styles.hiddenInput}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) loadFile(f);
-            e.target.value = "";
+      />
+
+      {!data && (
+        <label
+          htmlFor="gpx-input"
+          className={`${styles.drop} ${dragging ? styles.dropActive : ""}`}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragging(true);
           }}
-        />
-        <strong>{data ? "Load another GPX" : "Drop a GPX file here"}</strong>
-        <span>or click to browse</span>
-      </label>
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragging(false);
+            const f = e.dataTransfer.files[0];
+            if (f) loadFile(f);
+          }}
+        >
+          <strong>Drop a GPX file here</strong>
+          <span>or click to browse</span>
+        </label>
+      )}
 
       {error && (
         <p className={styles.error} role="alert">
@@ -121,10 +131,15 @@ export default function Home() {
 
       {data && (
         <>
-          <p className={styles.stats}>
-            <b>{data.name}</b> · {data.totalDist.toFixed(1)} km · D+ {Math.round(data.gain)} m · D−{" "}
-            {Math.round(data.loss)} m · {Math.round(data.minEle)}–{Math.round(data.maxEle)} m
-          </p>
+          <div className={styles.toolbar}>
+            <p className={styles.stats}>
+              <b>{data.name}</b> · {data.totalDist.toFixed(1)} km · D+ {Math.round(data.gain)} m · D−{" "}
+              {Math.round(data.loss)} m · {Math.round(data.minEle)}–{Math.round(data.maxEle)} m
+            </p>
+            <button className={styles.secondary} onClick={() => fileInputRef.current?.click()}>
+              Load another GPX
+            </button>
+          </div>
 
           <div className={styles.preview}>
             <ProfileChart data={data} markers={markers} options={options} svgRef={svgRef} />
