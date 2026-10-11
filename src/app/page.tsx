@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import ProfileChart, { type Marker, type MarkerIcon } from "@/components/ProfileChart";
 import LandingPreview from "@/components/LandingPreview";
+import Card from "@/components/Card";
 import { parseGpx, type ParsedGpx } from "@/lib/gpx";
 import { downloadPng, downloadSvg } from "@/lib/export";
 import { track } from "@/lib/analytics";
@@ -36,8 +37,11 @@ export default function Home() {
   const [isExample, setIsExample] = useState(false);
   const [exampleLoading, setExampleLoading] = useState(false);
   const [exampleError, setExampleError] = useState<string | null>(null);
+  /** Snapshot of style options kept while a reset-to-defaults toast is showing. */
+  const [styleUndo, setStyleUndo] = useState<ChartOptions | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** True once an example has been rendered, to detect a later real upload. */
   const cameFromExample = useRef(false);
 
@@ -48,6 +52,9 @@ export default function Home() {
     setFileName(name);
     setIsExample(fromExample);
   }, []);
+
+  // Clear any pending toast timer on unmount.
+  useEffect(() => () => void (toastTimer.current && clearTimeout(toastTimer.current)), []);
 
   const loadFile = useCallback(
     async (file: File) => {
@@ -98,6 +105,31 @@ export default function Home() {
   const updateMarker = (id: string, patch: Partial<Marker>) =>
     setMarkers((ms) => ms.map((m) => (m.id === id ? { ...m, ...patch } : m)));
 
+  const addMarker = () => {
+    if (!data) return;
+    setMarkers((ms) => [
+      ...ms,
+      { id: newId(), name: "Ravito", dist: Math.round(data.totalDist * 5) / 10, icon: "food" },
+    ]);
+  };
+
+  const showStyleToast = () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setStyleUndo(null), 6000);
+  };
+
+  const resetStyle = () => {
+    setStyleUndo(options);
+    setOptions(DEFAULT_OPTIONS);
+    showStyleToast();
+  };
+
+  const undoResetStyle = () => {
+    if (styleUndo) setOptions(styleUndo);
+    setStyleUndo(null);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  };
+
   const exportAs = async (kind: "svg" | "png") => {
     if (!svgRef.current) return;
     setBusy(true);
@@ -113,7 +145,7 @@ export default function Home() {
   };
 
   return (
-    <main className={`${styles.main} ${!data ? styles.landing : ""} ${dragging ? styles.dragging : ""}`}>
+    <main className={`${styles.main} ${data ? styles.builder : styles.landing} ${dragging ? styles.dragging : ""}`}>
       <h1 className={styles.title}>GPX → Elevation profile</h1>
       {!data && (
         <p className={styles.subtitle}>Upload a GPX file, get a race-style elevation profile as SVG or PNG.</p>
@@ -219,167 +251,216 @@ export default function Home() {
             </button>
           </div>
 
-          <div className={styles.preview}>
-            <ProfileChart data={data} markers={markers} options={options} svgRef={svgRef} />
-          </div>
-
-          <div className={styles.actions}>
-            <button onClick={() => exportAs("svg")} disabled={busy}>
-              Download SVG
-            </button>
-            <button onClick={() => exportAs("png")} disabled={busy}>
-              Download PNG
-            </button>
-          </div>
-
-          <section className={styles.panel}>
-            <h2>Style</h2>
-            <div className={styles.grid}>
-              <label>
-                Color
-                <input type="color" value={options.color} onChange={(e) => setOpt("color", e.target.value)} />
-              </label>
-              <label>
-                Lines ({options.lines})
-                <input
-                  type="range"
-                  min={1}
-                  max={80}
-                  value={options.lines}
-                  onChange={(e) => setOpt("lines", +e.target.value)}
-                />
-              </label>
-              <label>
-                Shift ({options.shift.toFixed(1)} px)
-                <input
-                  type="range"
-                  min={0}
-                  max={3}
-                  step={0.1}
-                  value={options.shift}
-                  onChange={(e) => setOpt("shift", +e.target.value)}
-                />
-              </label>
-              <label>
-                Width
-                <input
-                  type="number"
-                  min={600}
-                  max={4000}
-                  step={10}
-                  value={options.width}
-                  onChange={(e) => setOpt("width", Math.max(600, +e.target.value || 600))}
-                />
-              </label>
-              <label>
-                Height
-                <input
-                  type="number"
-                  min={200}
-                  max={1500}
-                  step={10}
-                  value={options.height}
-                  onChange={(e) => setOpt("height", Math.max(200, +e.target.value || 200))}
-                />
-              </label>
-              <label className={styles.check}>
-                <input type="checkbox" checked={options.showGrid} onChange={(e) => setOpt("showGrid", e.target.checked)} />
-                Grid
-              </label>
-              <label className={styles.check}>
-                <input
-                  type="checkbox"
-                  checked={options.showKmLabels}
-                  onChange={(e) => setOpt("showKmLabels", e.target.checked)}
-                />
-                Regular km labels
-              </label>
-              <label className={styles.check}>
-                <input
-                  type="checkbox"
-                  checked={options.background === "transparent"}
-                  onChange={(e) => setOpt("background", e.target.checked ? "transparent" : "white")}
-                />
-                Transparent background
-              </label>
+          <div className={styles.editorStack}>
+            <div className={styles.previewCardWrap}>
+              <div className={styles.preview}>
+                <ProfileChart data={data} markers={markers} options={options} svgRef={svgRef} />
+              </div>
+              <div className={styles.actions}>
+                <button onClick={() => exportAs("svg")} disabled={busy}>
+                  Download SVG
+                </button>
+                <button onClick={() => exportAs("png")} disabled={busy}>
+                  Download PNG
+                </button>
+              </div>
             </div>
-          </section>
 
-          <section className={styles.panel}>
-            <h2>Markers</h2>
-            <p className={styles.hint}>
-              Waypoints found in the GPX are added automatically. Edit names, distances and icons below.
-            </p>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Km</th>
-                  <th>Icon</th>
-                  <th aria-label="Remove" />
-                </tr>
-              </thead>
-              <tbody>
-                {[...markers]
-                  .sort((a, b) => a.dist - b.dist)
-                  .map((m) => (
-                    <tr key={m.id}>
-                      <td>
-                        <input
-                          aria-label="Marker name"
-                          value={m.name}
-                          onChange={(e) => updateMarker(m.id, { name: e.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          aria-label="Distance in km"
-                          type="number"
-                          step={0.1}
-                          min={0}
-                          max={Math.ceil(data.totalDist * 10) / 10}
-                          value={m.dist}
-                          onChange={(e) => updateMarker(m.id, { dist: +e.target.value || 0 })}
-                        />
-                      </td>
-                      <td>
-                        <select
-                          aria-label="Icon"
-                          value={m.icon}
-                          onChange={(e) => updateMarker(m.id, { icon: e.target.value as MarkerIcon })}
-                        >
-                          {ICONS.map((i) => (
-                            <option key={i.value} value={i.value}>
-                              {i.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <button
-                          className={styles.remove}
-                          aria-label={`Remove ${m.name}`}
-                          onClick={() => setMarkers((ms) => ms.filter((x) => x.id !== m.id))}
-                        >
-                          ×
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-            <button
-              className={styles.secondary}
-              onClick={() =>
-                setMarkers((ms) => [
-                  ...ms,
-                  { id: newId(), name: "Ravito", dist: Math.round(data.totalDist * 5) / 10, icon: "food" },
-                ])
+            <div className={styles.columns}>
+            <Card
+              title="Style"
+              icon="🎨"
+              idBase="style"
+              actions={
+                <button type="button" className={styles.ghost} onClick={resetStyle}>
+                  Reset
+                </button>
               }
             >
-              + Add marker
-            </button>
-          </section>
+              <div className={styles.groups}>
+                <fieldset className={styles.group}>
+                  <legend className={styles.groupLabel}>Appearance</legend>
+                  <div className={styles.controls}>
+                    <label>
+                      Color
+                      <input type="color" value={options.color} onChange={(e) => setOpt("color", e.target.value)} />
+                    </label>
+                    <label>
+                      Lines ({options.lines})
+                      <input
+                        type="range"
+                        min={1}
+                        max={80}
+                        value={options.lines}
+                        onChange={(e) => setOpt("lines", +e.target.value)}
+                      />
+                    </label>
+                    <label>
+                      Shift ({options.shift.toFixed(1)} px)
+                      <input
+                        type="range"
+                        min={0}
+                        max={3}
+                        step={0.1}
+                        value={options.shift}
+                        onChange={(e) => setOpt("shift", +e.target.value)}
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+
+                <fieldset className={styles.group}>
+                  <legend className={styles.groupLabel}>Size</legend>
+                  <div className={styles.controls}>
+                    <label>
+                      Width (px)
+                      <input
+                        type="number"
+                        min={600}
+                        max={4000}
+                        step={10}
+                        value={options.width}
+                        onChange={(e) => setOpt("width", Math.max(600, +e.target.value || 600))}
+                      />
+                    </label>
+                    <label>
+                      Height (px)
+                      <input
+                        type="number"
+                        min={200}
+                        max={1500}
+                        step={10}
+                        value={options.height}
+                        onChange={(e) => setOpt("height", Math.max(200, +e.target.value || 200))}
+                      />
+                    </label>
+                  </div>
+                </fieldset>
+
+                <fieldset className={styles.group}>
+                  <legend className={styles.groupLabel}>Display</legend>
+                  <div className={styles.controls}>
+                    <label className={styles.check}>
+                      <input
+                        type="checkbox"
+                        checked={options.showGrid}
+                        onChange={(e) => setOpt("showGrid", e.target.checked)}
+                      />
+                      Grid
+                    </label>
+                    <label className={styles.check}>
+                      <input
+                        type="checkbox"
+                        checked={options.showKmLabels}
+                        onChange={(e) => setOpt("showKmLabels", e.target.checked)}
+                      />
+                      Regular km labels
+                    </label>
+                    <label className={styles.check}>
+                      <input
+                        type="checkbox"
+                        checked={options.background === "transparent"}
+                        onChange={(e) => setOpt("background", e.target.checked ? "transparent" : "white")}
+                      />
+                      Transparent background
+                    </label>
+                  </div>
+                </fieldset>
+              </div>
+            </Card>
+
+            <Card
+              title="Markers"
+              icon="📍"
+              idBase="markers"
+              helper="Waypoints found in the GPX are added automatically. Edit names, distances and icons below."
+              actions={
+                <button type="button" className={styles.ghost} onClick={addMarker}>
+                  + Add marker
+                </button>
+              }
+            >
+              {markers.length === 0 ? (
+                <div className={styles.empty}>
+                  <p>No markers yet. Add one to label a point on the profile.</p>
+                  <button type="button" className={styles.secondary} onClick={addMarker}>
+                    + Add marker
+                  </button>
+                </div>
+              ) : (
+                <div className={styles.tableScroll}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Km</th>
+                        <th>Icon</th>
+                        <th aria-label="Remove" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...markers]
+                        .sort((a, b) => a.dist - b.dist)
+                        .map((m) => (
+                          <tr key={m.id}>
+                            <td data-label="Name">
+                              <input
+                                aria-label="Marker name"
+                                value={m.name}
+                                onChange={(e) => updateMarker(m.id, { name: e.target.value })}
+                              />
+                            </td>
+                            <td data-label="Km">
+                              <input
+                                aria-label="Distance in km"
+                                type="number"
+                                step={0.1}
+                                min={0}
+                                max={Math.ceil(data.totalDist * 10) / 10}
+                                value={m.dist}
+                                onChange={(e) => updateMarker(m.id, { dist: +e.target.value || 0 })}
+                              />
+                            </td>
+                            <td data-label="Icon">
+                              <select
+                                aria-label="Icon"
+                                value={m.icon}
+                                onChange={(e) => updateMarker(m.id, { icon: e.target.value as MarkerIcon })}
+                              >
+                                {ICONS.map((i) => (
+                                  <option key={i.value} value={i.value}>
+                                    {i.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+                            <td className={styles.removeCell}>
+                              <button
+                                className={styles.remove}
+                                aria-label={`Remove ${m.name}`}
+                                onClick={() => setMarkers((ms) => ms.filter((x) => x.id !== m.id))}
+                              >
+                                ×
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+            </div>
+          </div>
+
+          {styleUndo && (
+            <div className={styles.toast} role="status">
+              <span>Style reset to defaults.</span>
+              <button type="button" className={styles.toastBtn} onClick={undoResetStyle}>
+                Undo
+              </button>
+            </div>
+          )}
         </>
       )}
     </main>

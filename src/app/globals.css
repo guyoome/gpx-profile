@@ -4,14 +4,39 @@
   font-display: swap;
 }
 
+:root {
+  /* Design tokens — shared by cards and future panels (dark mode / themes can
+     reassign these without touching component CSS). */
+  --card-bg: #ffffff;
+  --card-border: #e6dceb;
+  --card-radius: 14px;
+  --card-shadow: 0 1px 3px rgba(80, 40, 110, 0.08);
+  --card-pad: 24px;
+  --card-pad-mobile: 16px;
+  --card-gap: 24px;
+  --card-gap-mobile: 16px;
+
+  --page-bg: #ffffff;
+  --text: #2a2630;
+  --text-muted: #6b6475;
+  --text-group: #7a6c86;
+  --accent: #7d3c8c;
+  --accent-soft: #efe3f2;
+  --accent-soft-hover: #e4d1e9;
+  --accent-ink: #5a2a66;
+  --focus-ring: #7d3c8c;
+  --input-border: #cbbcd3;
+  --danger: #b00020;
+}
+
 * {
   box-sizing: border-box;
 }
 
 body {
   margin: 0;
-  color: #171717;
-  background: #fff;
+  color: var(--text);
+  background: var(--page-bg);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
