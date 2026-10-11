@@ -4,17 +4,25 @@ import { useCallback, useRef, useState } from "react";
 import ProfileChart, { type ChartOptions, type Marker, type MarkerIcon } from "@/components/ProfileChart";
 import { parseGpx, type ParsedGpx } from "@/lib/gpx";
 import { downloadPng, downloadSvg } from "@/lib/export";
+import { track } from "@/lib/analytics";
 import styles from "./page.module.css";
 
 const DEFAULT_OPTIONS: ChartOptions = {
   color: "#9b59a8",
   width: 1310,
   height: 300,
-  lines: 32,
+  lines: 15,
   shift: 0.8,
   showGrid: true,
   showKmLabels: true,
   background: "white",
+};
+
+const SAMPLE = {
+  url: "/sample-diagonale-des-fous.gpx",
+  name: "Diagonale des Fous",
+  distanceLabel: "176.9 km",
+  fileName: "diagonale-des-fous",
 };
 
 const ICONS: { value: MarkerIcon; label: string }[] = [
@@ -47,23 +55,67 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [isExample, setIsExample] = useState(false);
+  const [exampleLoading, setExampleLoading] = useState(false);
+  const [exampleError, setExampleError] = useState<string | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** True once an example has been rendered, to detect a later real upload. */
+  const cameFromExample = useRef(false);
 
-  const loadFile = useCallback(async (file: File) => {
-    setError(null);
-    try {
-      const parsed = parseGpx(await file.text());
-      setData(parsed);
-      setMarkers(defaultMarkers(parsed));
-      setFileName(file.name.replace(/\.gpx$/i, "") || "profile");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not read this file.");
-    }
+  const applyParsed = useCallback((parsed: ParsedGpx, name: string, fromExample: boolean) => {
+    setData(parsed);
+    setMarkers(defaultMarkers(parsed));
+    setOptions(DEFAULT_OPTIONS);
+    setFileName(name);
+    setIsExample(fromExample);
   }, []);
 
-  const setOpt = <K extends keyof ChartOptions>(k: K, v: ChartOptions[K]) =>
+  const loadFile = useCallback(
+    async (file: File) => {
+      setError(null);
+      setExampleError(null);
+      try {
+        if (cameFromExample.current) {
+          track("upload_after_example");
+          cameFromExample.current = false;
+        }
+        const parsed = parseGpx(await file.text());
+        applyParsed(parsed, file.name.replace(/\.gpx$/i, "") || "profile", false);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Could not read this file.");
+      }
+    },
+    [applyParsed],
+  );
+
+  const loadExample = useCallback(async () => {
+    if (exampleLoading) return;
+    track("example_clicked");
+    setExampleError(null);
+    setError(null);
+    setExampleLoading(true);
+    const started = performance.now();
+    try {
+      // Same pipeline as a real upload: fetch the bundled asset, then parseGpx.
+      const res = await fetch(SAMPLE.url, { cache: "force-cache" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const parsed = parseGpx(await res.text());
+      applyParsed(parsed, SAMPLE.fileName, true);
+      cameFromExample.current = true;
+      track("example_loaded", { load_ms: Math.round(performance.now() - started) });
+    } catch (e) {
+      setExampleError("Couldn't load the example. Please try again or upload your own file.");
+      track("example_error", { message: e instanceof Error ? e.message : "unknown" });
+    } finally {
+      setExampleLoading(false);
+    }
+  }, [applyParsed, exampleLoading]);
+
+  const setOpt = <K extends keyof ChartOptions>(k: K, v: ChartOptions[K]) => {
     setOptions((o) => ({ ...o, [k]: v }));
+    if (isExample) track("example_style_changed", { setting: String(k) });
+  };
 
   const updateMarker = (id: string, patch: Partial<Marker>) =>
     setMarkers((ms) => ms.map((m) => (m.id === id ? { ...m, ...patch } : m)));
@@ -74,6 +126,7 @@ export default function Home() {
     try {
       if (kind === "svg") await downloadSvg(svgRef.current, `${fileName}-profile.svg`);
       else await downloadPng(svgRef.current, `${fileName}-profile.png`);
+      if (isExample) track("example_exported", { kind });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Export failed.");
     } finally {
@@ -103,24 +156,67 @@ export default function Home() {
       />
 
       {!data && (
-        <label
-          htmlFor="gpx-input"
-          className={`${styles.drop} ${dragging ? styles.dropActive : ""}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setDragging(true);
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragging(false);
-            const f = e.dataTransfer.files[0];
-            if (f) loadFile(f);
-          }}
-        >
-          <strong>Drop a GPX file here</strong>
-          <span>or click to browse</span>
-        </label>
+        <>
+          <label
+            htmlFor="gpx-input"
+            className={`${styles.drop} ${dragging ? styles.dropActive : ""}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragging(false);
+              const f = e.dataTransfer.files[0];
+              if (f) loadFile(f);
+            }}
+          >
+            <strong>Drop a GPX file here</strong>
+            <span>or click to browse</span>
+            <span className={styles.dropHint}>.gpx · max 20 MB</span>
+          </label>
+          <p className={styles.privacy}>🔒 Files are processed in your browser, never uploaded.</p>
+
+          {/* Example loader, kept outside the drop zone so the two actions don't compete */}
+          <div className={styles.exampleArea}>
+            <span className={styles.divider} aria-hidden="true">
+              or
+            </span>
+
+            <button
+              type="button"
+              className={styles.exampleBtn}
+              onClick={loadExample}
+              disabled={exampleLoading}
+              aria-describedby="example-caption"
+            >
+              {exampleLoading ? (
+                <>
+                  <span className={styles.spinner} aria-hidden="true" />
+                  Loading…
+                </>
+              ) : (
+                <>
+                  <span aria-hidden="true">▶</span> Try an example
+                </>
+              )}
+            </button>
+            <span id="example-caption" className={styles.exampleCaption}>
+              Sample: {SAMPLE.name} · {SAMPLE.distanceLabel}
+            </span>
+
+            {/* Loading / error state, announced to assistive tech. */}
+            <span className={styles.srStatus} aria-live="polite">
+              {exampleLoading ? "Loading the example…" : exampleError ? exampleError : ""}
+            </span>
+            {exampleError && (
+              <span className={styles.exampleError} role="alert">
+                {exampleError}
+              </span>
+            )}
+          </div>
+        </>
       )}
 
       {error && (
@@ -133,8 +229,10 @@ export default function Home() {
         <>
           <div className={styles.toolbar}>
             <p className={styles.stats}>
-              <b>{data.name}</b> · {data.totalDist.toFixed(1)} km · D+ {Math.round(data.gain)} m · D−{" "}
-              {Math.round(data.loss)} m · {Math.round(data.minEle)}–{Math.round(data.maxEle)} m
+              <b>{data.name}</b>
+              {isExample && <span className={styles.badge}>Example</span>} · {data.totalDist.toFixed(1)} km · D+{" "}
+              {Math.round(data.gain)} m · D− {Math.round(data.loss)} m · {Math.round(data.minEle)}–
+              {Math.round(data.maxEle)} m
             </p>
             <button className={styles.secondary} onClick={() => fileInputRef.current?.click()}>
               Load another GPX
