@@ -228,6 +228,14 @@ export default function Home() {
           </div>
 
           <LandingPreview />
+
+          <p className={styles.apiNote}>
+            Developers: generate a profile programmatically with the{" "}
+            <a href="/api/profile" target="_blank" rel="noopener noreferrer">
+              HTTP API
+            </a>{" "}
+            — <code>POST /api/profile</code> with your GPX, get an SVG back.
+          </p>
         </>
       )}
 

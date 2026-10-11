@@ -5,7 +5,7 @@ import { track } from "@/lib/analytics";
 import styles from "@/app/page.module.css";
 
 const PREVIEW = {
-  src: "/sample-preview.svg",
+  src: "/api/profile?sample=1",
   width: 1310,
   height: 300,
   alt: "Example elevation profile of the 176 km Diagonale des Fous mountain race, with start and finish markers, axes, grid and the layered line style.",

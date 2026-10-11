@@ -1,4 +1,4 @@
-import type { ChartOptions, Marker } from "@/components/ProfileChart";
+import type { ChartOptions, Marker } from "@/lib/profile-svg";
 import type { ParsedGpx } from "@/lib/gpx";
 
 /** The default style used for a fresh upload, the example, and the landing preview. */

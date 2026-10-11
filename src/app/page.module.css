@@ -283,6 +283,38 @@
   opacity: 0;
 }
 
+.apiNote {
+  margin: 24px 0 0;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.apiNote a {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.apiNote a:hover {
+  color: var(--accent-ink);
+}
+
+.apiNote a:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.apiNote code {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.8rem;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  padding: 1px 6px;
+  border-radius: 5px;
+}
+
 .error {
   color: #b00020;
   background: #fdecee;
