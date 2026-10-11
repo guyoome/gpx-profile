@@ -24,6 +24,7 @@ const ICONS: { value: MarkerIcon; label: string }[] = [
   { value: "water", label: "Water" },
   { value: "flag", label: "Finish flag" },
   { value: "start", label: "Start" },
+  { value: "runner", label: "Runner" },
 ];
 
 export default function Home() {
