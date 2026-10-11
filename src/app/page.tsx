@@ -1,22 +1,14 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import ProfileChart, { type ChartOptions, type Marker, type MarkerIcon } from "@/components/ProfileChart";
+import ProfileChart, { type Marker, type MarkerIcon } from "@/components/ProfileChart";
+import LandingPreview from "@/components/LandingPreview";
 import { parseGpx, type ParsedGpx } from "@/lib/gpx";
 import { downloadPng, downloadSvg } from "@/lib/export";
 import { track } from "@/lib/analytics";
+import { DEFAULT_OPTIONS, defaultMarkers, newId } from "@/lib/profile-defaults";
+import type { ChartOptions } from "@/components/ProfileChart";
 import styles from "./page.module.css";
-
-const DEFAULT_OPTIONS: ChartOptions = {
-  color: "#9b59a8",
-  width: 1310,
-  height: 300,
-  lines: 15,
-  shift: 0.8,
-  showGrid: true,
-  showKmLabels: true,
-  background: "white",
-};
 
 const SAMPLE = {
   url: "/sample-diagonale-des-fous.gpx",
@@ -32,20 +24,6 @@ const ICONS: { value: MarkerIcon; label: string }[] = [
   { value: "flag", label: "Finish flag" },
   { value: "start", label: "Start" },
 ];
-
-let idSeq = 0;
-const newId = () => `m${++idSeq}`;
-
-function defaultMarkers(data: ParsedGpx): Marker[] {
-  const round = (d: number) => Math.round(d * 10) / 10;
-  return [
-    { id: newId(), name: "Départ", dist: 0, icon: "none" },
-    ...data.waypoints
-      .filter((w) => w.dist > 0.2 && w.dist < data.totalDist - 0.2)
-      .map((w) => ({ id: newId(), name: w.name, dist: round(w.dist), icon: "food" as const })),
-    { id: newId(), name: "Arrivée", dist: round(data.totalDist), icon: "flag" },
-  ];
-}
 
 export default function Home() {
   const [data, setData] = useState<ParsedGpx | null>(null);
@@ -135,7 +113,7 @@ export default function Home() {
   };
 
   return (
-    <main className={styles.main}>
+    <main className={`${styles.main} ${!data ? styles.landing : ""} ${dragging ? styles.dragging : ""}`}>
       <h1 className={styles.title}>GPX → Elevation profile</h1>
       {!data && (
         <p className={styles.subtitle}>Upload a GPX file, get a race-style elevation profile as SVG or PNG.</p>
@@ -216,6 +194,8 @@ export default function Home() {
               </span>
             )}
           </div>
+
+          <LandingPreview />
         </>
       )}
 

@@ -12,7 +12,9 @@ export type AnalyticsEvent =
   | "example_error"
   | "example_style_changed"
   | "example_exported"
-  | "upload_after_example";
+  | "upload_after_example"
+  | "landing_viewed"
+  | "preview_in_viewport";
 
 type Props = Record<string, string | number | boolean | undefined>;
 

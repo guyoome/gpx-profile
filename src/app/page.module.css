@@ -1,7 +1,7 @@
 .main {
   max-width: 1400px;
   margin: 0 auto;
-  padding: 40px 24px 80px;
+  padding: 40px 24px 0px 24px;
 }
 
 .title {
@@ -27,7 +27,9 @@
   background: #faf5fb;
   color: #5a2a66;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .drop:hover,
@@ -89,7 +91,9 @@
   border: 1.5px solid #a569b5;
   border-radius: 8px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .exampleBtn:hover:not(:disabled) {
@@ -176,6 +180,97 @@
   }
 }
 
+/* ── "What you'll get" preview section ─────────────────────────────────── */
+.previewSection {
+  margin-top: 32px;
+  padding-bottom: 0;
+}
+
+/* Landing view sits at the bottom of the page; drop the page bottom padding so
+   short screens don't scroll. The editor view keeps the roomier .main padding. */
+.landing {
+  padding-bottom: 0;
+}
+
+.previewHeading {
+  font-family: ProfileFont, "Arial Narrow", sans-serif;
+  color: #7d3c8c;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+/* Deliberately not an upload target: solid light border, soft shadow, no dashed
+   border, no hover highlight, no pointer cursor. */
+.previewCard {
+  width: 100%;
+  border: 1px solid #e5e0e8;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(80, 40, 90, 0.08);
+  background: repeating-conic-gradient(#f3f3f3 0% 25%, #fff 0% 50%) 50% / 20px
+    20px;
+  overflow: hidden;
+  position: relative;
+  transition: opacity 0.15s;
+}
+
+.previewImg {
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: opacity 0.3s;
+}
+
+.previewSkeleton {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, #f4eef6 30%, #ece2f0 50%, #f4eef6 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
+}
+
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .previewSkeleton {
+    animation: none;
+  }
+}
+
+/* The preview dims slightly while a file is dragged over the page. */
+.dragging .previewCard {
+  opacity: 0.6;
+}
+
+.previewChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.chip {
+  font-size: 0.85rem;
+  /* Darkened from the borderline helper grey to meet WCAG AA (4.5:1). */
+  color: #4a4458;
+  background: #f4eef6;
+  border: 1px solid #e0d4e6;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+@media (max-width: 640px) {
+  .previewHeading {
+    font-size: 1.25rem;
+  }
+}
+
 .hiddenInput {
   position: absolute;
   width: 1px;
@@ -205,7 +300,8 @@
 }
 
 .preview {
-  background: repeating-conic-gradient(#f3f3f3 0% 25%, #fff 0% 50%) 50% / 20px 20px;
+  background: repeating-conic-gradient(#f3f3f3 0% 25%, #fff 0% 50%) 50% / 20px
+    20px;
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   padding: 8px;
