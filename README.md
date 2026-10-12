@@ -59,7 +59,7 @@ curl -X POST http://localhost:3000/api/profile \
   -o profile.svg
 ```
 
-**Options** (all optional): `color`, `width` (600–4000), `height` (200–1500), `lines` (1–80), `shift` (0–3), `showGrid`, `showKmLabels`, `background` (`"white"` | `"transparent"`). Omit `markers` to auto-generate start / aid-stations / finish from the GPX waypoints.
+**Options** (all optional): `color`, `width` (600–4000), `height` (200–1500), `lines` (1–80), `shift` (0–3), `showGrid`, `showKmLabels`, `showGradient`, `background` (`"white"` | `"transparent"`). Omit `markers` to auto-generate start / aid-stations / finish from the GPX waypoints.
 
 **Responses:** `200` `image/svg+xml` on success, with `X-Profile-Name`, `X-Profile-Distance-Km`, `X-Profile-Markers` and `X-RateLimit-*` headers. Errors: `400` (bad body), `413` (GPX > 20 MB), `415` (unsupported Content-Type), `422` (invalid GPX), `429` (rate limited).
 

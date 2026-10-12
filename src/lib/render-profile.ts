@@ -28,6 +28,7 @@ export function resolveOptions(input: Partial<ChartOptions> | undefined): ChartO
     shift: clamp(+o.shift, BOUNDS.shift.min, BOUNDS.shift.max) || 0,
     showGrid: Boolean(o.showGrid),
     showKmLabels: Boolean(o.showKmLabels),
+    showGradient: Boolean(o.showGradient),
     background: o.background === "transparent" ? "transparent" : "white",
   };
 }

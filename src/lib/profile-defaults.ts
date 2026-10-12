@@ -3,13 +3,15 @@ import type { ParsedGpx } from "@/lib/gpx";
 
 /** The default style used for a fresh upload, the example, and the landing preview. */
 export const DEFAULT_OPTIONS: ChartOptions = {
-  color: "#9b59a8",
+  // Lime, matching the shadcn theme primary (oklch(0.841 0.238 128.85)).
+  color: "#9ae600",
   width: 1310,
   height: 300,
   lines: 15,
   shift: 0.8,
   showGrid: true,
   showKmLabels: true,
+  showGradient: true,
   background: "white",
 };
 

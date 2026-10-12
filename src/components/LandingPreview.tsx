@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { IconMapPin, IconPalette, IconPhoto, IconStack2, type Icon } from "@tabler/icons-react";
 import { track } from "@/lib/analytics";
-import styles from "@/app/page.module.css";
 
 const PREVIEW = {
   src: "/api/profile?sample=1",
@@ -11,7 +11,12 @@ const PREVIEW = {
   alt: "Example elevation profile of the 176 km Diagonale des Fous mountain race, with start and finish markers, axes, grid and the layered line style.",
 };
 
-const CAPABILITIES = ["Exports as SVG or PNG", "Custom colors", "Markers", "Transparent background"];
+const FEATURES: { title: string; body: string; Icon: Icon }[] = [
+  { title: "SVG or PNG", body: "Vector for print and web, or a PNG at any size.", Icon: IconPhoto },
+  { title: "Custom colors", body: "Pick one color, the ridgeline shades follow.", Icon: IconPalette },
+  { title: "Markers", body: "Aid stations, summits and finish flags with a label.", Icon: IconMapPin },
+  { title: "Transparent background", body: "Drop the profile onto any poster or page.", Icon: IconStack2 },
+];
 
 /**
  * The "What you'll get" section shown on the landing page below the drop zone.
@@ -65,33 +70,44 @@ export default function LandingPreview() {
   if (failed) return null;
 
   return (
-    <section ref={sectionRef} className={styles.previewSection} aria-labelledby="preview-heading">
-      <h2 id="preview-heading" className={styles.previewHeading}>
+    <section ref={sectionRef} className="mt-16" aria-labelledby="preview-heading">
+      <h2 id="preview-heading" className="mb-5 text-2xl font-bold tracking-tight text-foreground sm:text-[1.75rem]">
         What you&rsquo;ll get
       </h2>
 
-      <div className={styles.previewCard} style={{ aspectRatio: `${PREVIEW.width} / ${PREVIEW.height}` }}>
-        {!loaded && <div className={styles.previewSkeleton} aria-hidden="true" />}
-        {/* eslint-disable-next-line @next/next/no-img-element -- static SVG, exact intrinsic size, no optimization needed */}
-        <img
-          ref={imgRef}
-          src={PREVIEW.src}
-          width={PREVIEW.width}
-          height={PREVIEW.height}
-          alt={PREVIEW.alt}
-          className={styles.previewImg}
-          decoding="async"
-          fetchPriority="high"
-          onLoad={() => setLoaded(true)}
-          onError={() => setFailed(true)}
-          style={{ opacity: loaded ? 1 : 0 }}
-        />
+      <div className="rounded-2xl border border-border bg-card p-4 sm:p-8">
+        <div className="relative w-full" style={{ aspectRatio: `${PREVIEW.width} / ${PREVIEW.height}` }}>
+          {!loaded && (
+            <div aria-hidden="true" className="absolute inset-0 rounded-lg bg-muted motion-safe:animate-pulse" />
+          )}
+          {/* eslint-disable-next-line @next/next/no-img-element -- static SVG, exact intrinsic size, no optimization needed */}
+          <img
+            ref={imgRef}
+            src={PREVIEW.src}
+            width={PREVIEW.width}
+            height={PREVIEW.height}
+            alt={PREVIEW.alt}
+            className="block h-auto w-full transition-opacity duration-300"
+            decoding="async"
+            fetchPriority="high"
+            onLoad={() => setLoaded(true)}
+            onError={() => setFailed(true)}
+            style={{ opacity: loaded ? 1 : 0 }}
+          />
+        </div>
       </div>
 
-      <ul className={styles.previewChips}>
-        {CAPABILITIES.map((c) => (
-          <li key={c} className={styles.chip}>
-            {c}
+      <ul className="mt-5 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
+        {FEATURES.map(({ title, body, Icon }) => (
+          <li key={title} className="rounded-2xl border border-border bg-card p-5">
+            <span
+              aria-hidden="true"
+              className="flex size-9 items-center justify-center rounded-lg bg-secondary text-foreground"
+            >
+              <Icon className="size-5" stroke={1.75} />
+            </span>
+            <h3 className="mt-6 mb-0 text-base font-semibold text-foreground">{title}</h3>
+            <p className="mt-1 mb-0 text-[0.95rem] leading-relaxed text-muted-foreground">{body}</p>
           </li>
         ))}
       </ul>

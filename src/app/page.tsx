@@ -1,15 +1,44 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import ProfileChart, { type Marker, type MarkerIcon } from "@/components/ProfileChart";
+import { useCallback, useRef, useState } from "react";
+import { toast } from "sonner";
+import {
+  IconDownload,
+  IconLock,
+  IconPlayerPlay,
+  IconPlus,
+  IconRotate,
+  IconUpload,
+  IconX,
+} from "@tabler/icons-react";
+import ProfileChart, { type Marker, type MarkerIcon, type ChartOptions } from "@/components/ProfileChart";
 import LandingPreview from "@/components/LandingPreview";
 import Card from "@/components/Card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { parseGpx, type ParsedGpx } from "@/lib/gpx";
 import { downloadPng, downloadSvg } from "@/lib/export";
 import { track } from "@/lib/analytics";
 import { DEFAULT_OPTIONS, defaultMarkers, newId } from "@/lib/profile-defaults";
-import type { ChartOptions } from "@/components/ProfileChart";
-import styles from "./page.module.css";
 
 const SAMPLE = {
   url: "/sample-diagonale-des-fous.gpx",
@@ -27,6 +56,26 @@ const ICONS: { value: MarkerIcon; label: string }[] = [
   { value: "runner", label: "Runner" },
 ];
 
+const GROUP_LABEL = "mb-3 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground";
+const FIELD_LABEL = "flex flex-col gap-2 text-[0.95rem] font-medium text-foreground";
+const FIELD_INPUT_MONO = "h-11 px-3.5 font-mono md:text-[0.95rem]";
+const CHECK_LABEL = "flex items-center gap-2 text-[0.95rem] font-normal";
+
+/** Integer with a non-breaking-space thousands separator, as in "10 357". */
+const fmtInt = (n: number) => Math.round(n).toLocaleString("en-US").replace(/,/g, "\u00a0");
+
+function Stat({ label, value, unit }: { label: string; value: string; unit: string }) {
+  return (
+    <div className="rounded-2xl bg-card px-5 py-4 ring-1 ring-border">
+      <p className="m-0 text-[0.95rem] text-muted-foreground">{label}</p>
+      <p className="mt-1 mb-0 text-[2rem] leading-tight font-bold tracking-[-0.03em] tabular-nums">
+        {value}
+        <span className="ml-1.5 text-base font-normal tracking-normal text-muted-foreground">{unit}</span>
+      </p>
+    </div>
+  );
+}
+
 export default function Home() {
   const [data, setData] = useState<ParsedGpx | null>(null);
   const [fileName, setFileName] = useState("profile");
@@ -38,11 +87,8 @@ export default function Home() {
   const [isExample, setIsExample] = useState(false);
   const [exampleLoading, setExampleLoading] = useState(false);
   const [exampleError, setExampleError] = useState<string | null>(null);
-  /** Snapshot of style options kept while a reset-to-defaults toast is showing. */
-  const [styleUndo, setStyleUndo] = useState<ChartOptions | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** True once an example has been rendered, to detect a later real upload. */
   const cameFromExample = useRef(false);
 
@@ -53,9 +99,6 @@ export default function Home() {
     setFileName(name);
     setIsExample(fromExample);
   }, []);
-
-  // Clear any pending toast timer on unmount.
-  useEffect(() => () => void (toastTimer.current && clearTimeout(toastTimer.current)), []);
 
   const loadFile = useCallback(
     async (file: File) => {
@@ -114,21 +157,13 @@ export default function Home() {
     ]);
   };
 
-  const showStyleToast = () => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setStyleUndo(null), 6000);
-  };
-
   const resetStyle = () => {
-    setStyleUndo(options);
+    const prev = options;
     setOptions(DEFAULT_OPTIONS);
-    showStyleToast();
-  };
-
-  const undoResetStyle = () => {
-    if (styleUndo) setOptions(styleUndo);
-    setStyleUndo(null);
-    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toast("Style reset to defaults.", {
+      action: { label: "Undo", onClick: () => setOptions(prev) },
+      duration: 6000,
+    });
   };
 
   const exportAs = async (kind: "svg" | "png") => {
@@ -145,11 +180,46 @@ export default function Home() {
     }
   };
 
+  const maxKm = data ? Math.ceil(data.totalDist * 10) / 10 : 0;
+
   return (
-    <main className={`${styles.main} ${data ? styles.builder : styles.landing} ${dragging ? styles.dragging : ""}`}>
-      <h1 className={styles.title}>GPX → Elevation profile</h1>
-      {!data && (
-        <p className={styles.subtitle}>Upload a GPX file, get a race-style elevation profile as SVG or PNG.</p>
+    <main className={`mx-auto max-w-6xl px-6 pb-20 ${data ? "pt-10" : "pt-12 sm:pt-14"}`}>
+      {data ? (
+        <header className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="m-0 text-3xl font-bold tracking-[-0.03em] sm:text-[2.1rem]">
+              {isExample ? data.name.replace(/\s*\(sample\)\s*$/i, "") : data.name}
+              {isExample && <span className="font-normal text-muted-foreground"> (sample)</span>}
+            </h1>
+            {isExample && <Badge className="h-6 px-2.5 text-xs font-semibold">Example</Badge>}
+          </div>
+          <Button
+            variant="outline"
+            className="h-10 px-4 text-[0.95rem] font-medium"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <IconUpload data-icon="inline-start" stroke={2} />
+            Load another GPX
+          </Button>
+        </header>
+      ) : (
+        <header className="flex flex-col items-center text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1 text-sm text-muted-foreground">
+            <span aria-hidden="true" className="size-2 rounded-full bg-primary" />
+            Free · runs in your browser
+          </span>
+          <h1 className="mt-3 mb-0 text-4xl leading-[1.12] font-bold tracking-[-0.04em] text-foreground sm:text-5xl md:text-6xl">
+            Race-style{" "}
+            <span className="rounded-xl bg-primary px-2 text-primary-foreground [box-decoration-break:clone]">
+              elevation profiles
+            </span>
+            <br />
+            from any GPX.
+          </h1>
+          <p className="mt-6 mb-0 max-w-xl text-lg leading-relaxed text-muted-foreground">
+            Drop a GPX file, add your aid stations, and export a clean ridgeline profile as SVG or PNG.
+          </p>
+        </header>
       )}
 
       {/* Single file input, used by both the drop zone and the "Load another GPX" button */}
@@ -158,7 +228,7 @@ export default function Home() {
         id="gpx-input"
         type="file"
         accept=".gpx,application/gpx+xml"
-        className={styles.hiddenInput}
+        className="sr-only"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) loadFile(f);
@@ -168,9 +238,12 @@ export default function Home() {
 
       {!data && (
         <>
-          <label
-            htmlFor="gpx-input"
-            className={`${styles.drop} ${dragging ? styles.dropActive : ""}`}
+          {/* Drop zone: clicking anywhere opens the picker; the buttons are the keyboard path. */}
+          <div
+            className={`mt-12 flex cursor-pointer flex-col items-center rounded-2xl border-2 border-dashed px-6 py-12 text-center transition-colors sm:py-14 ${
+              dragging ? "border-primary bg-primary/10" : "border-foreground/25 bg-muted/60 hover:border-primary"
+            }`}
+            onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => {
               e.preventDefault();
               setDragging(true);
@@ -183,293 +256,381 @@ export default function Home() {
               if (f) loadFile(f);
             }}
           >
-            <strong>Drop a GPX file here</strong>
-            <span>or click to browse</span>
-            <span className={styles.dropHint}>.gpx · max 20 MB</span>
-          </label>
-          <p className={styles.privacy}>🔒 Files are processed in your browser, never uploaded.</p>
-
-          {/* Example loader, kept outside the drop zone so the two actions don't compete */}
-          <div className={styles.exampleArea}>
-            <span className={styles.divider} aria-hidden="true">
-              or
-            </span>
-
-            <button
-              type="button"
-              className={styles.exampleBtn}
-              onClick={loadExample}
-              disabled={exampleLoading}
-              aria-describedby="example-caption"
+            <span
+              aria-hidden="true"
+              className="flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground"
             >
-              {exampleLoading ? (
-                <>
-                  <span className={styles.spinner} aria-hidden="true" />
-                  Loading…
-                </>
-              ) : (
-                <>
-                  <span aria-hidden="true">▶</span> Try an example
-                </>
-              )}
-            </button>
-            <span id="example-caption" className={styles.exampleCaption}>
+              <IconUpload className="size-6" stroke={2} />
+            </span>
+            <p className="mt-5 mb-0 text-lg font-semibold text-foreground">Drop a GPX file here</p>
+            <p className="mt-1 mb-0 text-sm text-muted-foreground">or click to browse · .gpx · max 20 MB</p>
+
+            <div className="mt-6 flex flex-wrap justify-center gap-3 max-sm:w-full max-sm:flex-col">
+              <Button
+                type="button"
+                className="h-10 px-4 text-[0.95rem] font-semibold"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+              >
+                <IconUpload data-icon="inline-start" stroke={2} />
+                Browse files
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="h-10 px-4 text-[0.95rem] font-medium"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  loadExample();
+                }}
+                disabled={exampleLoading}
+                aria-describedby="example-caption"
+              >
+                {exampleLoading ? (
+                  <>
+                    <span
+                      aria-hidden="true"
+                      className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                    />
+                    Loading…
+                  </>
+                ) : (
+                  <>
+                    <IconPlayerPlay data-icon="inline-start" stroke={2} />
+                    Try an example
+                  </>
+                )}
+              </Button>
+            </div>
+            <span id="example-caption" className="mt-4 text-sm text-muted-foreground">
               Sample: {SAMPLE.name} · {SAMPLE.distanceLabel}
             </span>
 
             {/* Loading / error state, announced to assistive tech. */}
-            <span className={styles.srStatus} aria-live="polite">
+            <span className="sr-only" aria-live="polite">
               {exampleLoading ? "Loading the example…" : exampleError ? exampleError : ""}
             </span>
             {exampleError && (
-              <span className={styles.exampleError} role="alert">
+              <span className="mt-2 max-w-[320px] text-sm text-destructive" role="alert">
                 {exampleError}
               </span>
             )}
           </div>
+          <p className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <IconLock aria-hidden="true" className="size-4" stroke={1.75} />
+            Files are processed in your browser, never uploaded.
+          </p>
 
           <LandingPreview />
 
-          <p className={styles.apiNote}>
+          <p className="mt-12 text-center text-sm leading-loose text-muted-foreground">
             Developers: generate a profile programmatically with the{" "}
-            <a href="/api/profile" target="_blank" rel="noopener noreferrer">
+            <a
+              href="/api/profile"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground underline underline-offset-4"
+            >
               HTTP API
             </a>{" "}
-            — <code>POST /api/profile</code> with your GPX, get an SVG back.
+            —{" "}
+            <code className="rounded-md bg-secondary px-2 py-1 font-mono text-[0.85rem] text-foreground">
+              POST /api/profile
+            </code>{" "}
+            with your GPX, get an SVG back.
           </p>
         </>
       )}
 
       {error && (
-        <p className={styles.error} role="alert">
+        <p className="rounded-lg bg-destructive/10 px-3.5 py-2.5 text-destructive" role="alert">
           {error}
         </p>
       )}
 
       {data && (
         <>
-          <div className={styles.toolbar}>
-            <p className={styles.stats}>
-              <b>{data.name}</b>
-              {isExample && <span className={styles.badge}>Example</span>} · {data.totalDist.toFixed(1)} km · D+{" "}
-              {Math.round(data.gain)} m · D− {Math.round(data.loss)} m · {Math.round(data.minEle)}–
-              {Math.round(data.maxEle)} m
-            </p>
-            <button className={styles.secondary} onClick={() => fileInputRef.current?.click()}>
-              Load another GPX
-            </button>
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat label="Distance" value={data.totalDist.toFixed(1)} unit="km" />
+            <Stat label="Elevation gain (D+)" value={fmtInt(data.gain)} unit="m" />
+            <Stat label="Elevation loss (D−)" value={fmtInt(data.loss)} unit="m" />
+            <Stat label="Altitude range" value={`${fmtInt(data.minEle)}–${fmtInt(data.maxEle)}`} unit="m" />
           </div>
 
-          <div className={styles.editorStack}>
-            <div className={styles.previewCardWrap}>
-              <div className={styles.preview}>
+          <div className="mt-6 flex flex-col gap-6">
+            {/* Preview card: chart + export buttons */}
+            <section
+              aria-labelledby="preview-title"
+              className="rounded-2xl bg-card p-6 ring-1 ring-border"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 id="preview-title" className="m-0 text-lg font-semibold tracking-tight">
+                    Preview
+                  </h2>
+                  <p className="mt-0.5 mb-0 text-[0.95rem] text-muted-foreground">
+                    {options.width} × {options.height} px · {options.lines} lines · {markers.length}{" "}
+                    {markers.length === 1 ? "marker" : "markers"}
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3 max-sm:w-full">
+                  <Button
+                    className="h-10 px-4 text-[0.95rem] font-semibold max-sm:flex-1"
+                    onClick={() => exportAs("svg")}
+                    disabled={busy}
+                  >
+                    <IconDownload data-icon="inline-start" stroke={2} />
+                    Download SVG
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-10 px-4 text-[0.95rem] font-medium max-sm:flex-1"
+                    onClick={() => exportAs("png")}
+                    disabled={busy}
+                  >
+                    <IconDownload data-icon="inline-start" stroke={2} />
+                    Download PNG
+                  </Button>
+                </div>
+              </div>
+              <div
+                className={`mt-5 overflow-x-auto rounded-xl border border-border p-3 transition-opacity ${
+                  dragging ? "opacity-60" : ""
+                } ${options.background === "transparent" ? "" : "bg-white"}`}
+                style={
+                  options.background === "transparent"
+                    ? { background: "repeating-conic-gradient(#f3f3f3 0% 25%, #fff 0% 50%) 50% / 20px 20px" }
+                    : undefined
+                }
+              >
                 <ProfileChart data={data} markers={markers} options={options} svgRef={svgRef} />
               </div>
-              <div className={styles.actions}>
-                <button onClick={() => exportAs("svg")} disabled={busy}>
-                  Download SVG
-                </button>
-                <button onClick={() => exportAs("png")} disabled={busy}>
-                  Download PNG
-                </button>
-              </div>
-            </div>
+            </section>
 
-            <div className={styles.columns}>
-            <Card
-              title="Style"
-              icon="🎨"
-              idBase="style"
-              actions={
-                <button type="button" className={styles.ghost} onClick={resetStyle}>
-                  Reset
-                </button>
-              }
-            >
-              <div className={styles.groups}>
-                <fieldset className={styles.group}>
-                  <legend className={styles.groupLabel}>Appearance</legend>
-                  <div className={styles.controls}>
-                    <label>
-                      Color
-                      <input type="color" value={options.color} onChange={(e) => setOpt("color", e.target.value)} />
-                    </label>
-                    <label>
-                      Lines ({options.lines})
-                      <input
-                        type="range"
-                        min={1}
-                        max={80}
-                        value={options.lines}
-                        onChange={(e) => setOpt("lines", +e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Shift ({options.shift.toFixed(1)} px)
-                      <input
-                        type="range"
-                        min={0}
-                        max={3}
-                        step={0.1}
-                        value={options.shift}
-                        onChange={(e) => setOpt("shift", +e.target.value)}
-                      />
-                    </label>
-                  </div>
-                </fieldset>
+            {/* Style and Markers side by side on wide screens */}
+            <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[5fr_7fr]">
+              <Card
+                title="Style"
+                actions={
+                  <Button variant="ghost" className="h-9 px-3 text-[0.95rem]" onClick={resetStyle}>
+                    <IconRotate data-icon="inline-start" stroke={2} />
+                    Reset
+                  </Button>
+                }
+              >
+                <div className="flex flex-col gap-6">
+                  <fieldset className="m-0 min-w-0 border-0 p-0">
+                    <legend className={GROUP_LABEL}>Appearance</legend>
+                    <div className="grid grid-cols-[auto_1fr_1fr] items-end gap-x-7 gap-y-3 max-sm:grid-cols-1">
+                      <label className={FIELD_LABEL}>
+                        Color
+                        <input
+                          type="color"
+                          className="h-11 w-14 cursor-pointer rounded-lg border border-input bg-background p-1"
+                          value={options.color}
+                          onChange={(e) => setOpt("color", e.target.value)}
+                        />
+                      </label>
+                      <div className={`${FIELD_LABEL} pb-3`}>
+                        <span>
+                          Lines <span className="text-muted-foreground tabular-nums">{options.lines}</span>
+                        </span>
+                        <Slider
+                          aria-label="Lines"
+                          className="mt-2"
+                          min={1}
+                          max={80}
+                          value={options.lines}
+                          onValueChange={(v) => setOpt("lines", Array.isArray(v) ? v[0] : v)}
+                        />
+                      </div>
+                      <div className={`${FIELD_LABEL} pb-3`}>
+                        <span>
+                          Shift{" "}
+                          <span className="font-mono text-muted-foreground">{options.shift.toFixed(1)} px</span>
+                        </span>
+                        <Slider
+                          aria-label="Shift"
+                          className="mt-2"
+                          min={0}
+                          max={3}
+                          step={0.1}
+                          value={options.shift}
+                          onValueChange={(v) => setOpt("shift", Array.isArray(v) ? v[0] : v)}
+                        />
+                      </div>
+                    </div>
+                  </fieldset>
 
-                <fieldset className={styles.group}>
-                  <legend className={styles.groupLabel}>Size</legend>
-                  <div className={styles.controls}>
-                    <label>
-                      Width (px)
-                      <input
-                        type="number"
-                        min={600}
-                        max={4000}
-                        step={10}
-                        value={options.width}
-                        onChange={(e) => setOpt("width", Math.max(600, +e.target.value || 600))}
-                      />
-                    </label>
-                    <label>
-                      Height (px)
-                      <input
-                        type="number"
-                        min={200}
-                        max={1500}
-                        step={10}
-                        value={options.height}
-                        onChange={(e) => setOpt("height", Math.max(200, +e.target.value || 200))}
-                      />
-                    </label>
-                  </div>
-                </fieldset>
+                  <fieldset className="m-0 min-w-0 border-0 p-0">
+                    <legend className={GROUP_LABEL}>Size</legend>
+                    <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                      <label className={FIELD_LABEL}>
+                        Width (px)
+                        <Input
+                          type="number"
+                          className={FIELD_INPUT_MONO}
+                          min={600}
+                          max={4000}
+                          step={10}
+                          value={options.width}
+                          onChange={(e) => setOpt("width", Math.max(600, +e.target.value || 600))}
+                        />
+                      </label>
+                      <label className={FIELD_LABEL}>
+                        Height (px)
+                        <Input
+                          type="number"
+                          className={FIELD_INPUT_MONO}
+                          min={200}
+                          max={1500}
+                          step={10}
+                          value={options.height}
+                          onChange={(e) => setOpt("height", Math.max(200, +e.target.value || 200))}
+                        />
+                      </label>
+                    </div>
+                  </fieldset>
 
-                <fieldset className={styles.group}>
-                  <legend className={styles.groupLabel}>Display</legend>
-                  <div className={styles.controls}>
-                    <label className={styles.check}>
-                      <input
-                        type="checkbox"
-                        checked={options.showGrid}
-                        onChange={(e) => setOpt("showGrid", e.target.checked)}
-                      />
-                      Grid
-                    </label>
-                    <label className={styles.check}>
-                      <input
-                        type="checkbox"
-                        checked={options.showKmLabels}
-                        onChange={(e) => setOpt("showKmLabels", e.target.checked)}
-                      />
-                      Regular km labels
-                    </label>
-                    <label className={styles.check}>
-                      <input
-                        type="checkbox"
-                        checked={options.background === "transparent"}
-                        onChange={(e) => setOpt("background", e.target.checked ? "transparent" : "white")}
-                      />
-                      Transparent background
-                    </label>
-                  </div>
-                </fieldset>
-              </div>
-            </Card>
-
-            <Card
-              title="Markers"
-              icon="📍"
-              idBase="markers"
-              helper="Waypoints found in the GPX are added automatically. Edit names, distances and icons below."
-              actions={
-                <button type="button" className={styles.ghost} onClick={addMarker}>
-                  + Add marker
-                </button>
-              }
-            >
-              {markers.length === 0 ? (
-                <div className={styles.empty}>
-                  <p>No markers yet. Add one to label a point on the profile.</p>
-                  <button type="button" className={styles.secondary} onClick={addMarker}>
-                    + Add marker
-                  </button>
+                  <fieldset className="m-0 min-w-0 border-0 p-0">
+                    <legend className={GROUP_LABEL}>Display</legend>
+                    <div className="flex flex-wrap items-center gap-x-7 gap-y-3">
+                      <Label className={CHECK_LABEL}>
+                        <Checkbox
+                          className="size-5"
+                          checked={options.showGrid}
+                          onCheckedChange={(c) => setOpt("showGrid", c === true)}
+                        />
+                        Grid
+                      </Label>
+                      <Label className={CHECK_LABEL}>
+                        <Checkbox
+                          className="size-5"
+                          checked={options.showKmLabels}
+                          onCheckedChange={(c) => setOpt("showKmLabels", c === true)}
+                        />
+                        Regular km labels
+                      </Label>
+                      <Label className={CHECK_LABEL}>
+                        <Checkbox
+                          className="size-5"
+                          checked={options.showGradient}
+                          onCheckedChange={(c) => setOpt("showGradient", c === true)}
+                        />
+                        Gradient fill
+                      </Label>
+                      <Label className={CHECK_LABEL}>
+                        <Checkbox
+                          className="size-5"
+                          checked={options.background === "transparent"}
+                          onCheckedChange={(c) => setOpt("background", c === true ? "transparent" : "white")}
+                        />
+                        Transparent background
+                      </Label>
+                    </div>
+                  </fieldset>
                 </div>
-              ) : (
-                <div className={styles.tableScroll}>
-                  <table className={styles.table}>
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Km</th>
-                        <th>Icon</th>
-                        <th aria-label="Remove" />
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...markers]
-                        .sort((a, b) => a.dist - b.dist)
-                        .map((m) => (
-                          <tr key={m.id}>
-                            <td data-label="Name">
-                              <input
-                                aria-label="Marker name"
-                                value={m.name}
-                                onChange={(e) => updateMarker(m.id, { name: e.target.value })}
-                              />
-                            </td>
-                            <td data-label="Km">
-                              <input
-                                aria-label="Distance in km"
-                                type="number"
-                                step={0.1}
-                                min={0}
-                                max={Math.ceil(data.totalDist * 10) / 10}
-                                value={m.dist}
-                                onChange={(e) => updateMarker(m.id, { dist: +e.target.value || 0 })}
-                              />
-                            </td>
-                            <td data-label="Icon">
-                              <select
-                                aria-label="Icon"
-                                value={m.icon}
-                                onChange={(e) => updateMarker(m.id, { icon: e.target.value as MarkerIcon })}
-                              >
-                                {ICONS.map((i) => (
-                                  <option key={i.value} value={i.value}>
-                                    {i.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td className={styles.removeCell}>
-                              <button
-                                className={styles.remove}
-                                aria-label={`Remove ${m.name}`}
-                                onClick={() => setMarkers((ms) => ms.filter((x) => x.id !== m.id))}
-                              >
-                                ×
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </Card>
+              </Card>
+
+              <Card
+                title="Markers"
+                helper="Waypoints found in the GPX are added automatically. Edit names, positions and icons."
+                actions={
+                  <Button variant="outline" className="h-10 px-4 text-[0.95rem] font-medium" onClick={addMarker}>
+                    <IconPlus data-icon="inline-start" stroke={2} />
+                    Add marker
+                  </Button>
+                }
+              >
+                {markers.length === 0 ? (
+                  <div className="flex flex-col items-start gap-3 text-muted-foreground">
+                    <p className="m-0">No markers yet. Add one to label a point on the profile.</p>
+                    <Button variant="secondary" onClick={addMarker}>
+                      <IconPlus data-icon="inline-start" stroke={2} />
+                      Add marker
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="max-h-120 overflow-y-auto">
+                    <Table className="border-separate border-spacing-y-2">
+                      <TableHeader className="[&_tr]:border-0">
+                        <TableRow className="border-0 hover:bg-transparent">
+                          <TableHead className="h-auto pl-0 font-normal text-muted-foreground">Name</TableHead>
+                          <TableHead className="h-auto font-normal text-muted-foreground">Km</TableHead>
+                          <TableHead className="h-auto font-normal text-muted-foreground">Icon</TableHead>
+                          <TableHead aria-label="Remove" className="h-auto" />
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {[...markers]
+                          .sort((a, b) => a.dist - b.dist)
+                          .map((m) => (
+                            <TableRow key={m.id} className="border-0 hover:bg-transparent">
+                              <TableCell className="py-0 pl-0">
+                                <Input
+                                  aria-label="Marker name"
+                                  className="h-11 min-w-32 px-3.5 md:text-[0.95rem]"
+                                  value={m.name}
+                                  onChange={(e) => updateMarker(m.id, { name: e.target.value })}
+                                />
+                              </TableCell>
+                              <TableCell className="w-28 py-0">
+                                <Input
+                                  aria-label="Distance in km"
+                                  type="number"
+                                  className={`${FIELD_INPUT_MONO} w-24`}
+                                  step={0.1}
+                                  min={0}
+                                  max={maxKm}
+                                  value={m.dist}
+                                  onChange={(e) => updateMarker(m.id, { dist: +e.target.value || 0 })}
+                                />
+                              </TableCell>
+                              <TableCell className="w-44 py-0">
+                                <Select
+                                  items={ICONS}
+                                  value={m.icon}
+                                  onValueChange={(v) => updateMarker(m.id, { icon: v as MarkerIcon })}
+                                >
+                                  <SelectTrigger aria-label="Icon" className="h-11! w-40 px-3.5 text-[0.95rem]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {ICONS.map((i) => (
+                                      <SelectItem key={i.value} value={i.value}>
+                                        {i.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </TableCell>
+                              <TableCell className="w-10 py-0 pr-0">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-muted-foreground"
+                                  aria-label={`Remove ${m.name}`}
+                                  onClick={() => setMarkers((ms) => ms.filter((x) => x.id !== m.id))}
+                                >
+                                  <IconX stroke={1.75} />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </Card>
             </div>
           </div>
 
-          {styleUndo && (
-            <div className={styles.toast} role="status">
-              <span>Style reset to defaults.</span>
-              <button type="button" className={styles.toastBtn} onClick={undoResetStyle}>
-                Undo
-              </button>
-            </div>
-          )}
+          <p className="mt-8 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <IconLock aria-hidden="true" className="size-4" stroke={1.75} />
+            Files are processed in your browser, never uploaded.
+          </p>
         </>
       )}
     </main>

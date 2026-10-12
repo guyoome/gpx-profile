@@ -114,7 +114,9 @@ export async function GET(req: NextRequest): Promise<Response> {
         status: 200,
         headers: {
           "content-type": "image/svg+xml; charset=utf-8",
-          "cache-control": "public, max-age=3600, stale-while-revalidate=86400",
+          // Short TTL so theme/default changes show up promptly after deploy,
+          // while stale-while-revalidate keeps it fast for repeat/CDN hits.
+          "cache-control": "public, max-age=60, stale-while-revalidate=3600",
         },
       });
     } catch (e) {
