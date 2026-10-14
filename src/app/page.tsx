@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { toast } from "sonner";
 import {
   IconDownload,
   IconLock,
@@ -158,12 +157,7 @@ export default function Home() {
   };
 
   const resetStyle = () => {
-    const prev = options;
     setOptions(DEFAULT_OPTIONS);
-    toast("Style reset to defaults.", {
-      action: { label: "Undo", onClick: () => setOptions(prev) },
-      duration: 6000,
-    });
   };
 
   const exportAs = async (kind: "svg" | "png") => {
