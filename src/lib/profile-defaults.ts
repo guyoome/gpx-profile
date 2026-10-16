@@ -9,6 +9,7 @@ export const DEFAULT_OPTIONS: ChartOptions = {
   height: 300,
   lines: 15,
   shift: 0.8,
+  strokeWidth: 2.4,
   showGrid: true,
   showAxes: true,
   showKmLabels: true,

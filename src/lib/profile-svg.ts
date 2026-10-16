@@ -18,6 +18,8 @@ export type ChartOptions = {
   lines: number;
   /** Horizontal shift between two consecutive lines, in px */
   shift: number;
+  /** Stroke width of the top ridgeline, in px; stacked contour lines scale with it */
+  strokeWidth: number;
   showGrid: boolean;
   /** Show the X and Y axes (lines, arrowheads, "Alt (m)"/"Dist (km)" captions and altitude tick labels) */
   showAxes: boolean;
@@ -173,7 +175,7 @@ function iconSvg(type: MarkerIcon, fg = "#fff"): string {
  * so every environment produces identical SVG with no React server renderer.
  */
 export function buildProfileSvg(data: ParsedGpx, markers: Marker[], options: ChartOptions): string {
-  const { color, width: W, height: H, lines: N, shift, showGrid, showAxes, showKmLabels, showGradient, background } = options;
+  const { color, width: W, height: H, lines: N, shift, strokeWidth: SW, showGrid, showAxes, showKmLabels, showGradient, background } = options;
   const x0 = MARGIN.left;
   const x1 = W - MARGIN.right;
   const yBottom = H - MARGIN.bottom;
@@ -263,8 +265,10 @@ export function buildProfileSvg(data: ParsedGpx, markers: Marker[], options: Cha
     const t = N > 1 ? i / (N - 1) : 0;
     // With the gradient off, every line is drawn in the picked colour, unshaded.
     const stroke = !showGradient ? color : i === 0 ? ink : mixHex(mid, lightest, t);
-    const strokeWidth = i === 0 ? 2.4 : 1;
-    prof += `<path d="${paths[i]}" fill="none" stroke="${stroke}" stroke-opacity="${i === 0 ? 1 : 0.9}" stroke-width="${strokeWidth}" stroke-linejoin="round"></path>`;
+    // The ridgeline uses the picked stroke width; stacked contour lines keep
+    // their original ratio to it (1 / 2.4 of the ridgeline).
+    const strokeWidth = i === 0 ? SW : SW * (1 / 2.4);
+    prof += `<path d="${paths[i]}" fill="none" stroke="${stroke}" stroke-opacity="${i === 0 ? 1 : 0.9}" stroke-width="${strokeWidth.toFixed(2)}" stroke-linejoin="round"></path>`;
   }
   prof += `</g>`;
   parts.push(prof);

@@ -94,6 +94,11 @@ const CHART_OPTIONS: Param[] = [
   { name: "height", type: "number", description: "Image height in px (min 200)." },
   { name: "lines", type: "number", description: "Number of stacked contour (ridgeline) lines." },
   { name: "shift", type: "number", description: "Horizontal shift between consecutive lines, in px." },
+  {
+    name: "strokeWidth",
+    type: "number",
+    description: "Stroke width of the top ridgeline in px (0.5–8); stacked contour lines scale with it.",
+  },
   { name: "showGrid", type: "boolean", description: "Draw the background grid." },
   {
     name: "showAxes",

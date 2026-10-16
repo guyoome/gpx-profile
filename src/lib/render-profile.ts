@@ -10,6 +10,7 @@ const BOUNDS = {
   height: { min: 200, max: 1500 },
   lines: { min: 1, max: 80 },
   shift: { min: 0, max: 3 },
+  strokeWidth: { min: 0.5, max: 8 },
 };
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), hi);
@@ -26,6 +27,8 @@ export function resolveOptions(input: Partial<ChartOptions> | undefined): ChartO
     height: clamp(Math.round(+o.height || DEFAULT_OPTIONS.height), BOUNDS.height.min, BOUNDS.height.max),
     lines: clamp(Math.round(+o.lines || DEFAULT_OPTIONS.lines), BOUNDS.lines.min, BOUNDS.lines.max),
     shift: clamp(+o.shift, BOUNDS.shift.min, BOUNDS.shift.max) || 0,
+    strokeWidth:
+      clamp(+o.strokeWidth, BOUNDS.strokeWidth.min, BOUNDS.strokeWidth.max) || DEFAULT_OPTIONS.strokeWidth,
     showGrid: Boolean(o.showGrid),
     showAxes: Boolean(o.showAxes),
     showKmLabels: Boolean(o.showKmLabels),

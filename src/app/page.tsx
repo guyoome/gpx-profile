@@ -454,6 +454,23 @@ export default function Home() {
                           onValueChange={(v) => setOpt("shift", Array.isArray(v) ? v[0] : v)}
                         />
                       </div>
+                      <div className={`${FIELD_LABEL} pb-3`}>
+                        <span>
+                          Stroke{" "}
+                          <span className="font-mono text-muted-foreground">
+                            {options.strokeWidth.toFixed(1)} px
+                          </span>
+                        </span>
+                        <Slider
+                          aria-label="Stroke width"
+                          className="mt-2"
+                          min={0.5}
+                          max={8}
+                          step={0.1}
+                          value={options.strokeWidth}
+                          onValueChange={(v) => setOpt("strokeWidth", Array.isArray(v) ? v[0] : v)}
+                        />
+                      </div>
                     </div>
                   </fieldset>
 
