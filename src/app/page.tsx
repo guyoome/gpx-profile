@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import Link from "next/link";
 import {
   IconDownload,
   IconLock,
@@ -321,14 +322,12 @@ export default function Home() {
 
           <p className="mt-12 text-center text-sm leading-loose text-muted-foreground">
             Developers: generate a profile programmatically with the{" "}
-            <a
-              href="/api/profile"
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href="/docs"
               className="font-medium text-foreground underline underline-offset-4"
             >
               HTTP API
-            </a>{" "}
+            </Link>{" "}
             —{" "}
             <code className="rounded-md bg-secondary px-2 py-1 font-mono text-[0.85rem] text-foreground">
               POST /api/profile
