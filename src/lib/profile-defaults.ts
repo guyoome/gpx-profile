@@ -10,6 +10,7 @@ export const DEFAULT_OPTIONS: ChartOptions = {
   lines: 15,
   shift: 0.8,
   showGrid: true,
+  showAxes: true,
   showKmLabels: true,
   showGradient: true,
   background: "white",

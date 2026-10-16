@@ -19,6 +19,8 @@ export type ChartOptions = {
   /** Horizontal shift between two consecutive lines, in px */
   shift: number;
   showGrid: boolean;
+  /** Show the X and Y axes (lines, arrowheads, "Alt (m)"/"Dist (km)" captions and altitude tick labels) */
+  showAxes: boolean;
   /** Show the regular distance labels (every 10 km, 5 km… depending on length) */
   showKmLabels: boolean;
   /** Soft colour gradient under the profile and shaded lines; off = flat lines in the picked colour */
@@ -171,7 +173,7 @@ function iconSvg(type: MarkerIcon, fg = "#fff"): string {
  * so every environment produces identical SVG with no React server renderer.
  */
 export function buildProfileSvg(data: ParsedGpx, markers: Marker[], options: ChartOptions): string {
-  const { color, width: W, height: H, lines: N, shift, showGrid, showKmLabels, showGradient, background } = options;
+  const { color, width: W, height: H, lines: N, shift, showGrid, showAxes, showKmLabels, showGradient, background } = options;
   const x0 = MARGIN.left;
   const x1 = W - MARGIN.right;
   const yBottom = H - MARGIN.bottom;
@@ -268,24 +270,26 @@ export function buildProfileSvg(data: ParsedGpx, markers: Marker[], options: Cha
   parts.push(prof);
 
   // Axes
-  parts.push(
-    `<g stroke="${ink}" stroke-width="3" stroke-linecap="round" fill="none">` +
-      `<line x1="${x0}" y1="${yBottom}" x2="${x1 + 18}" y2="${yBottom}"></line>` +
-      `<line x1="${x0}" y1="${yBottom}" x2="${x0}" y2="${yTop - 20}"></line>` +
-      `</g>`,
-  );
-  parts.push(`<path d="M${x1 + 26},${yBottom} l-10,-5 v10z" fill="${ink}"></path>`);
-  parts.push(`<path d="M${x0},${yTop - 28} l-5,10 h10z" fill="${ink}"></path>`);
-  parts.push(
-    `<text x="${x0 - 10}" y="${yTop - 22}" text-anchor="end" font-size="14" fill="${MUTED_TEXT}">Alt (m)</text>`,
-  );
-  parts.push(`<text x="${x1 + 32}" y="${yBottom + 5}" font-size="14" fill="${MUTED_TEXT}">Dist (km)</text>`);
-
-  // Altitude labels
-  for (const e of eleTicks)
+  if (showAxes) {
     parts.push(
-      `<text x="${x0 - 10}" y="${yOf(e) + 5}" text-anchor="end" font-size="15" fill="${MUTED_TEXT}">${e}</text>`,
+      `<g stroke="${ink}" stroke-width="3" stroke-linecap="round" fill="none">` +
+        `<line x1="${x0}" y1="${yBottom}" x2="${x1 + 18}" y2="${yBottom}"></line>` +
+        `<line x1="${x0}" y1="${yBottom}" x2="${x0}" y2="${yTop - 20}"></line>` +
+        `</g>`,
     );
+    parts.push(`<path d="M${x1 + 26},${yBottom} l-10,-5 v10z" fill="${ink}"></path>`);
+    parts.push(`<path d="M${x0},${yTop - 28} l-5,10 h10z" fill="${ink}"></path>`);
+    parts.push(
+      `<text x="${x0 - 10}" y="${yTop - 22}" text-anchor="end" font-size="14" fill="${MUTED_TEXT}">Alt (m)</text>`,
+    );
+    parts.push(`<text x="${x1 + 32}" y="${yBottom + 5}" font-size="14" fill="${MUTED_TEXT}">Dist (km)</text>`);
+
+    // Altitude labels
+    for (const e of eleTicks)
+      parts.push(
+        `<text x="${x0 - 10}" y="${yOf(e) + 5}" text-anchor="end" font-size="15" fill="${MUTED_TEXT}">${e}</text>`,
+      );
+  }
 
   // Regular km labels, skipped when too close to a marker label
   if (showKmLabels) {

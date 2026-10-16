@@ -27,6 +27,7 @@ export function resolveOptions(input: Partial<ChartOptions> | undefined): ChartO
     lines: clamp(Math.round(+o.lines || DEFAULT_OPTIONS.lines), BOUNDS.lines.min, BOUNDS.lines.max),
     shift: clamp(+o.shift, BOUNDS.shift.min, BOUNDS.shift.max) || 0,
     showGrid: Boolean(o.showGrid),
+    showAxes: Boolean(o.showAxes),
     showKmLabels: Boolean(o.showKmLabels),
     showGradient: Boolean(o.showGradient),
     background: o.background === "transparent" ? "transparent" : "white",

@@ -501,6 +501,14 @@ export default function Home() {
                       <Label className={CHECK_LABEL}>
                         <Checkbox
                           className="size-5"
+                          checked={options.showAxes}
+                          onCheckedChange={(c) => setOpt("showAxes", c === true)}
+                        />
+                        Axes
+                      </Label>
+                      <Label className={CHECK_LABEL}>
+                        <Checkbox
+                          className="size-5"
                           checked={options.showKmLabels}
                           onCheckedChange={(c) => setOpt("showKmLabels", c === true)}
                         />

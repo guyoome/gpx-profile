@@ -96,6 +96,11 @@ const CHART_OPTIONS: Param[] = [
   { name: "shift", type: "number", description: "Horizontal shift between consecutive lines, in px." },
   { name: "showGrid", type: "boolean", description: "Draw the background grid." },
   {
+    name: "showAxes",
+    type: "boolean",
+    description: 'Draw the X and Y axes: lines, arrowheads, "Alt (m)"/"Dist (km)" captions and altitude tick labels.',
+  },
+  {
     name: "showKmLabels",
     type: "boolean",
     description: "Draw regular distance labels along the x-axis.",
