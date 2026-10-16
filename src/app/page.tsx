@@ -66,11 +66,13 @@ const fmtInt = (n: number) => Math.round(n).toLocaleString("en-US").replace(/,/g
 
 function Stat({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
-    <div className="rounded-2xl bg-card px-5 py-4 ring-1 ring-border">
-      <p className="m-0 text-[0.95rem] text-muted-foreground">{label}</p>
-      <p className="mt-1 mb-0 text-[2rem] leading-tight font-bold tracking-[-0.03em] tabular-nums">
+    <div className="rounded-xl bg-card px-4 py-3 ring-1 ring-border sm:rounded-2xl sm:px-5 sm:py-4">
+      <p className="m-0 text-sm text-muted-foreground sm:text-[0.95rem]">{label}</p>
+      <p className="mt-0.5 mb-0 text-2xl leading-tight font-bold tracking-[-0.03em] tabular-nums sm:mt-1 sm:text-[2rem]">
         {value}
-        <span className="ml-1.5 text-base font-normal tracking-normal text-muted-foreground">{unit}</span>
+        <span className="ml-1 text-sm font-normal tracking-normal text-muted-foreground sm:ml-1.5 sm:text-base">
+          {unit}
+        </span>
       </p>
     </div>
   );
@@ -178,7 +180,7 @@ export default function Home() {
   const maxKm = data ? Math.ceil(data.totalDist * 10) / 10 : 0;
 
   return (
-    <main className={`mx-auto max-w-6xl px-6 pb-20 ${data ? "pt-10" : "pt-12 sm:pt-14"}`}>
+    <main className={`mx-auto max-w-6xl px-4 pb-20 sm:px-6 ${data ? "pt-8 sm:pt-10" : "pt-12 sm:pt-14"}`}>
       {data ? (
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -345,7 +347,7 @@ export default function Home() {
 
       {data && (
         <>
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <Stat label="Distance" value={data.totalDist.toFixed(1)} unit="km" />
             <Stat label="Elevation gain (D+)" value={fmtInt(data.gain)} unit="m" />
             <Stat label="Elevation loss (D−)" value={fmtInt(data.loss)} unit="m" />
@@ -356,7 +358,7 @@ export default function Home() {
             {/* Preview card: chart + export buttons */}
             <section
               aria-labelledby="preview-title"
-              className="rounded-2xl bg-card p-6 ring-1 ring-border"
+              className="rounded-2xl bg-card p-4 ring-1 ring-border sm:p-6"
             >
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -389,7 +391,7 @@ export default function Home() {
                 </div>
               </div>
               <div
-                className={`mt-5 overflow-x-auto rounded-xl border border-border p-3 transition-opacity ${
+                className={`mt-5 overflow-x-auto rounded-xl border border-border p-2 transition-opacity sm:p-3 ${
                   dragging ? "opacity-60" : ""
                 } ${options.background === "transparent" ? "" : "bg-white"}`}
                 style={
@@ -400,6 +402,9 @@ export default function Home() {
               >
                 <ProfileChart data={data} markers={markers} options={options} svgRef={svgRef} />
               </div>
+              <p className="mt-2 text-center text-xs text-muted-foreground sm:hidden">
+                Scroll sideways to see the full profile.
+              </p>
             </section>
 
             {/* Style and Markers side by side on wide screens */}

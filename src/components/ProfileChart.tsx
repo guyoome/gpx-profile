@@ -39,13 +39,38 @@ export default function ProfileChart({ data, markers, options, svgRef }: Props) 
   // Apply the on-screen font family and layout styles to the injected <svg>.
   useEffect(() => {
     const svg = hostRef.current?.querySelector("svg");
-    if (svg) {
-      svg.style.color = options.color;
-      svg.style.fontFamily = FONT_FAMILY;
-      svg.style.maxWidth = "100%";
-      svg.style.height = "auto";
-    }
-  }, [html, options.color]);
+    if (!svg) return;
+
+    svg.style.color = options.color;
+    svg.style.fontFamily = FONT_FAMILY;
+    svg.style.display = "block";
+
+    // Desktop: fit the profile to the container (max-width:100%, no scroll).
+    // Mobile: render the profile at its full natural pixel size so it stays
+    // large and legible, and let the scrollable wrapper handle the horizontal
+    // overflow. Shrinking a wide profile to a phone width turns it into an
+    // unreadable sliver, so we deliberately overflow and scroll instead.
+    const mq = window.matchMedia("(max-width: 640px)");
+
+    const apply = () => {
+      if (mq.matches) {
+        // Full size on mobile; never narrower than the viewport.
+        svg.style.width = `${options.width}px`;
+        svg.style.maxWidth = "none";
+        svg.style.minWidth = "100%";
+        svg.style.height = "auto";
+      } else {
+        svg.style.width = "";
+        svg.style.maxWidth = "100%";
+        svg.style.minWidth = "";
+        svg.style.height = "auto";
+      }
+    };
+
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, [html, options.color, options.width, options.height]);
 
   return <div ref={hostRef} dangerouslySetInnerHTML={{ __html: html }} />;
 }
